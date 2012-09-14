@@ -11,3 +11,6 @@ repos
 *.war
 *.ear
 *.bak
+*.idea
+*.iml
+*.ipr

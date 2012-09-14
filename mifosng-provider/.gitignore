@@ -6,3 +6,11 @@ repos
 .settings
 .gradle
 *.log
+*.class
+*.jar
+*.war
+*.ear
+*.bak
+*.idea
+*.iml
+*.ipr
