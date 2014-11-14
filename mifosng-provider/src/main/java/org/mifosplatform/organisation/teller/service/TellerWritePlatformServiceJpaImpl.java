@@ -274,6 +274,15 @@ public class TellerWritePlatformServiceJpaImpl implements TellerWritePlatformSer
 	            .build();
 	}
     
+    /*
+    @Override
+	public CommandProcessingResult inwardCashToCashier (final Long cashierId,
+			final CashierTransaction cashierTxn) {
+    	CashierTxnType txnType = CashierTxnType.INWARD_CASH_TXN;
+        // pre save to generate id for use in office hierarchy
+        this.cashierTxnRepository.save(cashierTxn);
+    } */
+    
     @Override
 	public CommandProcessingResult allocateCashToCashier(final Long cashierId, JsonCommand command) {
     	return doTransactionForCashier(cashierId, CashierTxnType.ALLOCATE, command); // For fund allocation to cashier
@@ -284,7 +293,8 @@ public class TellerWritePlatformServiceJpaImpl implements TellerWritePlatformSer
     	return doTransactionForCashier(cashierId, CashierTxnType.SETTLE, command); // For fund settlement from cashier
     }
 
-	private CommandProcessingResult doTransactionForCashier(final Long cashierId, final CashierTxnType txnType, JsonCommand command) {
+	private CommandProcessingResult doTransactionForCashier(final Long cashierId,
+			final CashierTxnType txnType, JsonCommand command) {
 		try {
             final AppUser currentUser = this.context.authenticatedUser();
             
@@ -295,21 +305,23 @@ public class TellerWritePlatformServiceJpaImpl implements TellerWritePlatformSer
                         
             final String entityType = command.stringValueOfParameterNamed("entityType");
             final Long entityId = command.longValueOfParameterNamed("entityId");
-            if (entityType.equals("loan account")) {
-            	// TODO : Check if loan account exists
-            	// LoanAccount loan = null;
-            	// if (loan == null) { throw new LoanAccountFoundException(entityId); }
-            } else if (entityType.equals("savings account")) {
-            	// TODO : Check if loan account exists
-            	// SavingsAccount savingsaccount = null;
-            	// if (savingsaccount == null) { throw new SavingsAccountNotFoundException(entityId); }
-            	
-            } if (entityType.equals("client")) {
-            	// TODO: Check if client exists
-            	// Client client = null;
-            	// if (client == null) { throw new ClientNotFoundException(entityId); }
-            } else {
-            	// TODO : Invalid type handling
+            if (entityType != null) {
+	            if (entityType.equals("loan account")) {
+	            	// TODO : Check if loan account exists
+	            	// LoanAccount loan = null;
+	            	// if (loan == null) { throw new LoanAccountFoundException(entityId); }
+	            } else if (entityType.equals("savings account")) {
+	            	// TODO : Check if loan account exists
+	            	// SavingsAccount savingsaccount = null;
+	            	// if (savingsaccount == null) { throw new SavingsAccountNotFoundException(entityId); }
+	            	
+	            } if (entityType.equals("client")) {
+	            	// TODO: Check if client exists
+	            	// Client client = null;
+	            	// if (client == null) { throw new ClientNotFoundException(entityId); }
+	            } else {
+	            	// TODO : Invalid type handling
+	            }
             }
             
             final CashierTransaction cashierTxn = CashierTransaction.fromJson(cashier, command);

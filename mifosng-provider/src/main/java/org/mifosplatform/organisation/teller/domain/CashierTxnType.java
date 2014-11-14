@@ -7,10 +7,10 @@ public class CashierTxnType {
 	private Integer id;
 	private String value;
 	
-	public static CashierTxnType ALLOCATE 			= new CashierTxnType (101, "Allocate_Cash");
-	public static CashierTxnType SETTLE 			= new CashierTxnType (102, "Settle_Cash");
-	public static CashierTxnType INWARD_CASH_TXN 	= new CashierTxnType (103, "Inward_Cash_Txn");
-	public static CashierTxnType OUTWARD_CASH_TXN 	= new CashierTxnType (104, "Outward_Cash_Txn");
+	public static CashierTxnType ALLOCATE 			= new CashierTxnType (101, "Allocate Cash");
+	public static CashierTxnType SETTLE 			= new CashierTxnType (102, "Settle Cash");
+	public static CashierTxnType INWARD_CASH_TXN 	= new CashierTxnType (103, "Cash In");
+	public static CashierTxnType OUTWARD_CASH_TXN 	= new CashierTxnType (104, "Cash Out");
 	
 	private CashierTxnType () {
 	}

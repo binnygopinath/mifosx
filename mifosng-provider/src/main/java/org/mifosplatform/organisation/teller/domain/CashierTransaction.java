@@ -89,6 +89,7 @@ public class CashierTransaction extends AbstractPersistable<Long> {
     	this.entityType = entityType;
     	this.entityId = entityId;
     	this.txnNote = txnNote;
+    	this.createdDate = new Date(); 
     }
     
     public Map<String, Object> update(final JsonCommand command) {

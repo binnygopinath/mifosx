@@ -8,6 +8,7 @@ package org.mifosplatform.portfolio.loanaccount.loanschedule.service;
 import org.mifosplatform.infrastructure.core.api.JsonQuery;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.data.LoanScheduleData;
 import org.mifosplatform.portfolio.loanaccount.loanschedule.domain.LoanScheduleModel;
+import org.mifosplatform.useradministration.domain.AppUser;
 
 public interface LoanScheduleCalculationPlatformService {
 

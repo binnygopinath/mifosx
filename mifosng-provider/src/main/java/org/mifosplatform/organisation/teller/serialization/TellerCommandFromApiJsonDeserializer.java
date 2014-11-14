@@ -69,7 +69,7 @@ public final class TellerCommandFromApiJsonDeserializer {
         baseDataValidator.reset().parameter("name").value(name).notBlank().notExceedingLengthOf(50);
 
         final String description = this.fromApiJsonHelper.extractStringNamed("description", element);
-        baseDataValidator.reset().parameter("description").value(description).notBlank().notExceedingLengthOf(100);
+        baseDataValidator.reset().parameter("description").value(description).notExceedingLengthOf(100);
 
         final LocalDate startDate = this.fromApiJsonHelper.extractLocalDateNamed("startDate", element);
         baseDataValidator.reset().parameter("startDate").value(startDate).notNull();
@@ -131,7 +131,7 @@ public final class TellerCommandFromApiJsonDeserializer {
         baseDataValidator.reset().parameter("staffId").value(staffId).notNull().integerGreaterThanZero();
         
         final String description = this.fromApiJsonHelper.extractStringNamed("description", element);
-        baseDataValidator.reset().parameter("description").value(description).notBlank().notExceedingLengthOf(100);
+        baseDataValidator.reset().parameter("description").value(description).notExceedingLengthOf(100);
 
         final LocalDate startDate = this.fromApiJsonHelper.extractLocalDateNamed("startDate", element);
         baseDataValidator.reset().parameter("startDate").value(startDate).notNull();

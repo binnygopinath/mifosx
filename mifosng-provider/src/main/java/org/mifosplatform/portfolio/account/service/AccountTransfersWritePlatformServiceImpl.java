@@ -22,6 +22,7 @@ import org.joda.time.format.DateTimeFormatter;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResultBuilder;
+import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.portfolio.account.PortfolioAccountType;
 import org.mifosplatform.portfolio.account.data.AccountTransferDTO;
 import org.mifosplatform.portfolio.account.data.AccountTransfersDataValidator;
@@ -43,12 +44,15 @@ import org.mifosplatform.portfolio.savings.domain.SavingsAccountAssembler;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountDomainService;
 import org.mifosplatform.portfolio.savings.domain.SavingsAccountTransaction;
 import org.mifosplatform.portfolio.savings.service.SavingsAccountWritePlatformService;
+import org.mifosplatform.useradministration.domain.AppUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AccountTransfersWritePlatformServiceImpl implements AccountTransfersWritePlatformService {
+	
+	// private final PlatformSecurityContext context;
 
     private final AccountTransfersDataValidator accountTransfersDataValidator;
     private final AccountTransferAssembler accountTransferAssembler;
@@ -66,7 +70,9 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             final SavingsAccountAssembler savingsAccountAssembler, final SavingsAccountDomainService savingsAccountDomainService,
             final LoanAssembler loanAssembler, final LoanAccountDomainService loanAccountDomainService,
             final SavingsAccountWritePlatformService savingsAccountWritePlatformService,
-            final AccountTransferDetailRepository accountTransferDetailRepository) {
+            final AccountTransferDetailRepository accountTransferDetailRepository // ,
+            // final PlatformSecurityContext context
+            ) {
         this.accountTransfersDataValidator = accountTransfersDataValidator;
         this.accountTransferAssembler = accountTransferAssembler;
         this.accountTransferRepository = accountTransferRepository;
@@ -76,11 +82,19 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
         this.loanAccountDomainService = loanAccountDomainService;
         this.savingsAccountWritePlatformService = savingsAccountWritePlatformService;
         this.accountTransferDetailRepository = accountTransferDetailRepository;
+       // this.context = context;
     }
 
     @Transactional
     @Override
     public CommandProcessingResult create(final JsonCommand command) {
+    	
+    	/*
+    	AppUser currentUser = null;
+    	if (this.context != null) {
+    		currentUser = this.context.authenticatedUser();
+    	}*/
+    	
         boolean isRegularTransaction = true;
 
         this.accountTransfersDataValidator.validate(command);
@@ -142,7 +156,7 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             final boolean isRecoveryRepayment = false;
             final LoanTransaction loanRepaymentTransaction = this.loanAccountDomainService.makeRepayment(toLoanAccount,
                     new CommandProcessingResultBuilder(), transactionDate, transactionAmount, paymentDetail, null, null,
-                    isRecoveryRepayment, isAccountTransfer);
+                    isRecoveryRepayment, isAccountTransfer, null); // TODO: Binny
 
             final AccountTransferDetails accountTransferDetails = this.accountTransferAssembler.assembleSavingsToLoanTransfer(command,
                     fromSavingsAccount, toLoanAccount, withdrawal, loanRepaymentTransaction);
@@ -157,7 +171,8 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             final Loan fromLoanAccount = this.loanAccountAssembler.assembleFrom(fromLoanAccountId);
 
             final LoanTransaction loanRefundTransaction = this.loanAccountDomainService.makeRefund(fromLoanAccountId,
-                    new CommandProcessingResultBuilder(), transactionDate, transactionAmount, paymentDetail, null, null);
+                    new CommandProcessingResultBuilder(), transactionDate, transactionAmount, paymentDetail, null, null,
+                    null); // TODO: Binny
 
             final Long toSavingsAccountId = command.longValueOfParameterNamed(toAccountIdParamName);
             final SavingsAccount toSavingsAccount = this.savingsAccountAssembler.assembleFrom(toSavingsAccountId);
@@ -238,6 +253,13 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
     @Override
     @Transactional
     public Long transferFunds(final AccountTransferDTO accountTransferDTO) {
+    	
+    	/*
+    	AppUser currentUser = null;
+    	if (this.context != null) {
+    		currentUser = this.context.authenticatedUser();
+    	}*/
+    	
         Long transferTransactionId = null;
         final boolean isAccountTransfer = true;
         final boolean isWithdrawBalance = false;
@@ -271,13 +293,13 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
                 loanTransaction = this.loanAccountDomainService.makeChargePayment(toLoanAccount, accountTransferDTO.getChargeId(),
                         accountTransferDTO.getTransactionDate(), accountTransferDTO.getTransactionAmount(),
                         accountTransferDTO.getPaymentDetail(), null, null, accountTransferDTO.getToTransferType(),
-                        accountTransferDTO.getLoanInstallmentNumber());
+                        accountTransferDTO.getLoanInstallmentNumber(), null); // TODO: Binny
 
             } else {
                 final boolean isRecoveryRepayment = false;
                 loanTransaction = this.loanAccountDomainService.makeRepayment(toLoanAccount, new CommandProcessingResultBuilder(),
                         accountTransferDTO.getTransactionDate(), accountTransferDTO.getTransactionAmount(),
-                        accountTransferDTO.getPaymentDetail(), null, null, isRecoveryRepayment, isAccountTransfer);
+                        accountTransferDTO.getPaymentDetail(), null, null, isRecoveryRepayment, isAccountTransfer, null); //TODO: Binny
             }
 
             accountTransferDetails = this.accountTransferAssembler.assembleSavingsToLoanTransfer(accountTransferDTO, fromSavingsAccount,
@@ -344,12 +366,14 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             if (LoanTransactionType.DISBURSEMENT.getValue().equals(accountTransferDTO.getFromTransferType())) {
                 loanTransaction = this.loanAccountDomainService.makeDisburseTransaction(accountTransferDTO.getFromAccountId(),
                         accountTransferDTO.getTransactionDate(), accountTransferDTO.getTransactionAmount(),
-                        accountTransferDTO.getPaymentDetail(), accountTransferDTO.getNoteText(), accountTransferDTO.getTxnExternalId());
+                        accountTransferDTO.getPaymentDetail(), accountTransferDTO.getNoteText(), accountTransferDTO.getTxnExternalId(),
+                        null); // TODO: Binny
             } else {
                 loanTransaction = this.loanAccountDomainService.makeRefund(accountTransferDTO.getFromAccountId(),
                         new CommandProcessingResultBuilder(), accountTransferDTO.getTransactionDate(),
                         accountTransferDTO.getTransactionAmount(), accountTransferDTO.getPaymentDetail(), accountTransferDTO.getNoteText(),
-                        accountTransferDTO.getTxnExternalId());
+                        accountTransferDTO.getTxnExternalId(),
+                        null); // TODO : Binny
             }
 
             final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(toSavingsAccount,

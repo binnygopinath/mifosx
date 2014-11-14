@@ -7,6 +7,7 @@ package org.mifosplatform.organisation.teller.service;
 
 import org.mifosplatform.organisation.teller.data.CashierData;
 import org.mifosplatform.organisation.teller.data.CashierTransactionData;
+import org.mifosplatform.organisation.teller.data.CashierTransactionsWithSummaryData;
 import org.mifosplatform.organisation.teller.data.TellerData;
 import org.mifosplatform.organisation.teller.data.TellerJournalData;
 import org.mifosplatform.organisation.teller.data.TellerTransactionData;
@@ -50,4 +51,8 @@ public interface TellerManagementReadPlatformService {
     public Collection<CashierTransactionData> retrieveCashierTransactions(
 			Long cashierId, boolean includeAllTellers, Date fromDate,
 			Date toDate);
+    
+    public CashierTransactionsWithSummaryData retrieveCashierTransactionsWithSummary (
+			Long cashierId, boolean includeAllTellers, Date fromDate, Date toDate);
+
 }

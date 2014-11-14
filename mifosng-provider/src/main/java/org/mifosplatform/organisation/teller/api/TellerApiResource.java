@@ -10,6 +10,7 @@ import org.mifosplatform.infrastructure.core.serialization.DefaultToApiJsonSeria
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.organisation.teller.data.CashierData;
 import org.mifosplatform.organisation.teller.data.CashierTransactionData;
+import org.mifosplatform.organisation.teller.data.CashierTransactionsWithSummaryData;
 import org.mifosplatform.organisation.teller.data.TellerData;
 import org.mifosplatform.organisation.teller.data.TellerJournalData;
 import org.mifosplatform.organisation.teller.data.TellerTransactionData;
@@ -228,6 +229,27 @@ public class TellerApiResource {
         				true, fromDate, toDate);
         
         return this.jsonSerializer.serialize(cashierTxns);
+    }
+    
+    @GET
+    @Path("{tellerId}/cashiers/{cashierId}/summaryandtransactions")
+    @Consumes({MediaType.TEXT_HTML, MediaType.APPLICATION_JSON})
+    @Produces(MediaType.APPLICATION_JSON)
+    public String getTransactionsWtihSummaryForCashier (@PathParam("tellerId") final Long tellerId, 
+    		@PathParam("cashierId") final Long cashierId, 
+    		final String fromDateStr, final String toDateStr) {
+        final TellerData teller = this.readPlatformService.findTeller(tellerId);
+        final CashierData cashier = this.readPlatformService.findCashier(cashierId);
+        
+        final Date fromDate = null;
+        final Date toDate = null;
+        
+        final CashierTransactionsWithSummaryData cashierTxnWithSummary = 
+        		this.readPlatformService.retrieveCashierTransactionsWithSummary
+        			(cashierId, 
+        				true, fromDate, toDate);
+        
+        return this.jsonSerializer.serialize(cashierTxnWithSummary);
     }
     
     @GET
