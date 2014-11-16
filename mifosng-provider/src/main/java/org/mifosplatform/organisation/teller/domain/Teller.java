@@ -158,7 +158,16 @@ public class Teller extends AbstractPersistable<Long> {
             this.endDate = newValue.toDate();
         }
         
-        // TODO: final TellerStatus status = TellerStatus.fromInt(tellerStatusInt);
+        final String statusParamName = "status";
+        if (command.isChangeInIntegerParameterNamed(statusParamName, getStatus())) {
+            final Integer valueAsInput = command.integerValueOfParameterNamed(statusParamName);
+            actualChanges.put(statusParamName, valueAsInput);
+            final Integer newValue = command.integerValueOfParameterNamed(statusParamName);
+            final TellerStatus status = TellerStatus.fromInt(newValue);
+            if (status != TellerStatus.INVALID) {
+            	this.status = status.getValue(); 
+            }
+        }
 
         return actualChanges;
     }

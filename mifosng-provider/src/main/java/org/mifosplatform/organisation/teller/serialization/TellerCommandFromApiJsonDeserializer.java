@@ -106,9 +106,6 @@ public final class TellerCommandFromApiJsonDeserializer {
 
         final LocalDate startDate = this.fromApiJsonHelper.extractLocalDateNamed("startDate", element);
         baseDataValidator.reset().parameter("startDate").value(startDate).notNull();
-
-        final LocalDate endDate = this.fromApiJsonHelper.extractLocalDateNamed("endDate", element);
-        // baseDataValidator.reset().parameter("endDate").value(endDate).notNull();
         
         final String status = this.fromApiJsonHelper.extractStringNamed("status", element);
         baseDataValidator.reset().parameter("status").value(status).notBlank().notExceedingLengthOf(50);

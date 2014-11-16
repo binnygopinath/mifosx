@@ -476,13 +476,19 @@ public class TellerManagementReadPlatformServiceImpl implements TellerManagement
         		retrieveCashierTransactions (cashierId, includeAllTellers,
         	    		fromDate, toDate);
         
+        CashierTransactionData cashierTxnTemplate = retrieveCashierTxnTemplate (cashierId);
+        
         CashierTransactionsWithSummaryData txnsWithSummary = 
         		CashierTransactionsWithSummaryData.instance(
         				cashierTransactions,
         				allocAmount,
         				cashInAmount,
         				cashOutAmount,
-        				settleAmount);
+        				settleAmount, 
+        				cashierTxnTemplate.getOfficeName(),
+        				cashierTxnTemplate.getTellerId(), cashierTxnTemplate.getTellerName(),
+        				cashierTxnTemplate.getCashierId(), cashierTxnTemplate.getCashierName()
+        				);
         return txnsWithSummary;
     }
 

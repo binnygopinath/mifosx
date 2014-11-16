@@ -16,6 +16,11 @@ public final class CashierTransactionsWithSummaryData implements Serializable {
 	private final BigDecimal sumOutwardCash;
 	private final BigDecimal sumCashSettlement;
 	private final BigDecimal netCash;
+	private final String officeName;
+	private final long tellerId;
+	private final String tellerName;
+	private final long cashierId;
+	private final String cashierName;
 
     private final Collection<CashierTransactionData> cashierTransactions;
 
@@ -25,7 +30,12 @@ public final class CashierTransactionsWithSummaryData implements Serializable {
     		final BigDecimal sumInwardCash,
     		final BigDecimal sumOutwardCash,
     		final BigDecimal sumCashSettlement,
-    		final BigDecimal netCash
+    		final BigDecimal netCash,
+    		final String officeName,
+    		final Long tellerId,
+    		final String tellerName,
+    		final Long cashierId,
+    		final String cashierName
     		) {
     	this.cashierTransactions = cashierTransactions;
     	this.sumCashAllocation = sumCashAllocation;
@@ -33,6 +43,11 @@ public final class CashierTransactionsWithSummaryData implements Serializable {
     	this.sumOutwardCash = sumOutwardCash;
     	this.sumCashSettlement = sumCashSettlement;
     	this.netCash = netCash;
+    	this.officeName = officeName;
+    	this.tellerId = tellerId;
+    	this.tellerName = tellerName;
+    	this.cashierId = cashierId;
+    	this.cashierName = cashierName;
     }
 
     public static CashierTransactionsWithSummaryData instance(
@@ -40,7 +55,12 @@ public final class CashierTransactionsWithSummaryData implements Serializable {
     		final BigDecimal sumCashAllocation,
     		final BigDecimal sumInwardCash,
     		final BigDecimal sumOutwardCash,
-    		final BigDecimal sumCashSettlement
+    		final BigDecimal sumCashSettlement,
+    		final String officeName,
+    		final Long tellerId,
+    		final String tellerName,
+    		final Long cashierId,
+    		final String cashierName
     		) {
     	
     	final BigDecimal netCash = 
@@ -52,7 +72,8 @@ public final class CashierTransactionsWithSummaryData implements Serializable {
         		sumCashAllocation,
         		sumInwardCash,
         		sumOutwardCash,
-        		sumCashSettlement, netCash);
+        		sumCashSettlement, netCash,
+        		officeName, tellerId, tellerName, cashierId, cashierName);
     }
 
 	public BigDecimal getSumCashAllocation() {
@@ -74,7 +95,26 @@ public final class CashierTransactionsWithSummaryData implements Serializable {
 	public BigDecimal getNetCash() {
 		return netCash;
 	}
+	
+	public String getOfficeName() {
+		return officeName;
+	}
+	
+	public Long getTellerId() {
+		return tellerId;
+	}
+	
+	public String getTellerName() {
+		return tellerName;
+	}
 
+	public Long getCashierId() {
+		return cashierId;
+	}
+	
+	public String getCashierName() {
+		return cashierName;
+	}
 	public Collection<CashierTransactionData> getCashierTransactions() {
 		return cashierTransactions;
 	}
