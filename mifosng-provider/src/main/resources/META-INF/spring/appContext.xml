@@ -42,7 +42,8 @@
 										  org.mifosplatform.template.*,
 										  org.mifosplatform.template.service.*,
 										  org.mifosplatform.useradministration.*,
-										  org.mifosplatform.batch">
+										  org.mifosplatform.batch,
+										  com.conflux.mifosplatform.*">
 		<context:exclude-filter expression="org.springframework.stereotype.Controller"
 			type="annotation" />
 
