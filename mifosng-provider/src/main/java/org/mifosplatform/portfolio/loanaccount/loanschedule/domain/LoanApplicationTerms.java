@@ -834,8 +834,8 @@ public final class LoanApplicationTerms {
 
             final Integer periodsRemaining = this.numberOfRepayments - periodsElapsed;
 
-            double installmentAmount = FinanicalFunctions.pmt(periodicInterestRate.doubleValue(), periodsRemaining.doubleValue(),
-                    principalDouble, futureValue, false);
+        	double installmentAmount = FinanicalFunctions.pmt(periodicInterestRate.doubleValue(), periodsRemaining.doubleValue(),
+                principalDouble, futureValue, false);
 
             if (this.installmentAmountInMultiplesOf != null) {
                 installmentAmount = Money.roundToMultiplesOf(installmentAmount, this.installmentAmountInMultiplesOf);

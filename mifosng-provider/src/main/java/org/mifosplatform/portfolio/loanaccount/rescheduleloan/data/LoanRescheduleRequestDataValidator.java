@@ -156,10 +156,11 @@ public class LoanRescheduleRequestDataValidator {
             List<LoanRescheduleRequestData> loanRescheduleRequestData = this.loanRescheduleRequestReadPlatformService
                     .readLoanRescheduleRequests(loanId, LoanStatus.APPROVED.getValue());
 
+            /* TODO: Binny - Temporary commenting
             if (loanRescheduleRequestData.size() > 0) {
                 dataValidatorBuilder.reset().failWithCodeNoParameterAddedToErrorCode("loan.already.rescheduled",
                         "The loan can only be rescheduled once.");
-            }
+            } */
         }
 
         if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
@@ -234,10 +235,11 @@ public class LoanRescheduleRequestDataValidator {
                 List<LoanRescheduleRequestData> loanRescheduleRequestData = this.loanRescheduleRequestReadPlatformService
                         .readLoanRescheduleRequests(loanId, LoanStatus.APPROVED.getValue());
 
+                /* TODO: Binny - Temporary commenting
                 if (loanRescheduleRequestData.size() > 0) {
                     dataValidatorBuilder.reset().failWithCodeNoParameterAddedToErrorCode("loan.already.rescheduled",
                             "The loan can only be rescheduled once.");
-                }
+                } */
             }
         }
 
