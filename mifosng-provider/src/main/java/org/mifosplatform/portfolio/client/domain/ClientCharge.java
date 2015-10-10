@@ -39,6 +39,10 @@ public class ClientCharge extends AbstractPersistable<Long> {
     @ManyToOne(optional = false)
     @JoinColumn(name = "charge_id", referencedColumnName = "id", nullable = false)
     private Charge charge;
+    
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "client_recurring_charge_id", referencedColumnName = "id", nullable = true)
+    private ClientRecurringCharge clientRecurringCharge;
 
     @Column(name = "charge_time_enum", nullable = false)
     private Integer chargeTime;
@@ -269,6 +273,10 @@ public class ClientCharge extends AbstractPersistable<Long> {
     public void setCurrency(OrganisationCurrency currency) {
         this.currency = currency;
     }
+    
+    public void setDueDate(Date dueDate) {
+        this.dueDate = dueDate;
+    }
 
     public MonetaryCurrency getCurrency() {
         return this.currency.toMonetaryCurrency();
@@ -298,5 +306,9 @@ public class ClientCharge extends AbstractPersistable<Long> {
     public Money getAmountOutstanding() {
         return Money.of(getCurrency(), this.amountOutstanding);
     }
+
+	public ClientRecurringCharge getClientRecurringCharge() {
+		return clientRecurringCharge;
+	}
 
 }

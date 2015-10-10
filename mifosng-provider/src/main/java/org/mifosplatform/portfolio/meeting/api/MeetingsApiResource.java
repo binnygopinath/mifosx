@@ -250,6 +250,9 @@ public class MeetingsApiResource {
             case SAVINGS:
                 resourceDetails.withSavingsId(entityId);
             break;
+            case CLIENTCHARGE:
+                resourceDetails.withClientChargeId(entityId);
+            break;
             case INVALID:
             break;
             case LOAN_RECALCULATION_REST_DETAIL:

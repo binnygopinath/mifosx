@@ -5,8 +5,13 @@
  */
 package org.mifosplatform.portfolio.client.service;
 
+import java.util.Collection;
+
+import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.api.JsonCommand;
 import org.mifosplatform.infrastructure.core.data.CommandProcessingResult;
+import org.mifosplatform.portfolio.calendar.domain.Calendar;
+import org.mifosplatform.portfolio.calendar.domain.CalendarInstance;
 import org.springframework.transaction.annotation.Transactional;
 
 public interface ClientChargeWritePlatformService {
@@ -27,6 +32,15 @@ public interface ClientChargeWritePlatformService {
     CommandProcessingResult payCharge(Long clientId, Long clientChargeId, JsonCommand command);
 
     @Transactional
-    CommandProcessingResult inactivateCharge(Long clientId, Long clientChargeId);
+    CommandProcessingResult inactivateCharge(Long clientId, Long clientRecurringChargeId);
+    
+    @Transactional
+    CommandProcessingResult activateCharge(Long clientId, Long clientRecurringChargeId);
+    
+    @Transactional
+	void applyMeetingDateChanges(Calendar calendarForUpdate,
+			Collection<CalendarInstance> loanCalendarInstances,
+			Boolean reschedulebasedOnMeetingDates,
+			LocalDate presentMeetingDate, LocalDate newMeetingDate);
 
 }

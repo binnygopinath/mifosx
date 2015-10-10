@@ -1,5 +1,5 @@
 /**
- * This Source Code Form is subject to the terms of the Mozilla Public
+  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  */
@@ -7,6 +7,7 @@ package org.mifosplatform.portfolio.client.service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -29,6 +30,13 @@ import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext
 import org.mifosplatform.organisation.holiday.domain.HolidayRepositoryWrapper;
 import org.mifosplatform.organisation.monetary.domain.Money;
 import org.mifosplatform.organisation.workingdays.domain.WorkingDaysRepositoryWrapper;
+import org.mifosplatform.portfolio.calendar.domain.Calendar;
+import org.mifosplatform.portfolio.calendar.domain.CalendarEntityType;
+import org.mifosplatform.portfolio.calendar.domain.CalendarInstance;
+import org.mifosplatform.portfolio.calendar.domain.CalendarInstanceRepository;
+import org.mifosplatform.portfolio.calendar.domain.CalendarRepository;
+import org.mifosplatform.portfolio.calendar.exception.CalendarNotFoundException;
+import org.mifosplatform.portfolio.calendar.service.CalendarWritePlatformService;
 import org.mifosplatform.portfolio.charge.domain.Charge;
 import org.mifosplatform.portfolio.charge.domain.ChargeRepositoryWrapper;
 import org.mifosplatform.portfolio.charge.exception.ChargeCannotBeAppliedToException;
@@ -38,9 +46,13 @@ import org.mifosplatform.portfolio.client.domain.Client;
 import org.mifosplatform.portfolio.client.domain.ClientCharge;
 import org.mifosplatform.portfolio.client.domain.ClientChargePaidBy;
 import org.mifosplatform.portfolio.client.domain.ClientChargeRepositoryWrapper;
+import org.mifosplatform.portfolio.client.domain.ClientRecurringCharge;
+import org.mifosplatform.portfolio.client.domain.ClientRecurringChargeRepository;
+import org.mifosplatform.portfolio.client.domain.ClientRecurringChargeRepositoryWrapper;
 import org.mifosplatform.portfolio.client.domain.ClientRepositoryWrapper;
 import org.mifosplatform.portfolio.client.domain.ClientTransaction;
 import org.mifosplatform.portfolio.client.domain.ClientTransactionRepository;
+import org.mifosplatform.portfolio.group.data.GroupGeneralData;
 import org.mifosplatform.portfolio.paymentdetail.domain.PaymentDetail;
 import org.mifosplatform.portfolio.paymentdetail.service.PaymentDetailWritePlatformService;
 import org.mifosplatform.useradministration.domain.AppUser;
@@ -48,7 +60,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements ClientChargeWritePlatformService {
@@ -66,6 +80,10 @@ public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements Client
     private final ClientTransactionRepository clientTransactionRepository;
     private final PaymentDetailWritePlatformService paymentDetailWritePlatformService;
     private final JournalEntryWritePlatformService journalEntryWritePlatformService;
+    private final CalendarRepository calendarRepository;
+    private final CalendarInstanceRepository calendarInstanceRepository;
+    private final ClientRecurringChargeRepository clientRecurringChargeRepository;
+    private final ClientRecurringChargeRepositoryWrapper clientRecurringChargeRepowrapper;
 
     @Autowired
     public ClientChargeWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -74,7 +92,11 @@ public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements Client
             final ConfigurationDomainService configurationDomainService, final ClientChargeRepositoryWrapper clientChargeRepository,
             final WorkingDaysRepositoryWrapper workingDaysRepository, final ClientTransactionRepository clientTransactionRepository,
             final PaymentDetailWritePlatformService paymentDetailWritePlatformService,
-            final JournalEntryWritePlatformService journalEntryWritePlatformService) {
+            final JournalEntryWritePlatformService journalEntryWritePlatformService,
+            final ClientRecurringChargeRepository clientRecurringChargeRepository,
+            final ClientRecurringChargeRepositoryWrapper clientRecurringChargeRepowrapper,
+            final CalendarRepository calendarRepository, 
+            final CalendarInstanceRepository calendarInstanceRepository) {
         this.context = context;
         this.chargeRepository = chargeRepository;
         this.clientChargeDataValidator = clientChargeDataValidator;
@@ -86,6 +108,10 @@ public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements Client
         this.clientTransactionRepository = clientTransactionRepository;
         this.paymentDetailWritePlatformService = paymentDetailWritePlatformService;
         this.journalEntryWritePlatformService = journalEntryWritePlatformService;
+        this.clientRecurringChargeRepository = clientRecurringChargeRepository;
+        this.clientRecurringChargeRepowrapper = clientRecurringChargeRepowrapper;
+        this.calendarRepository=calendarRepository;
+        this.calendarInstanceRepository=calendarInstanceRepository;
     }
 
     @Override
@@ -97,20 +123,39 @@ public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements Client
 
             final Long chargeDefinitionId = command.longValueOfParameterNamed(ClientApiConstants.chargeIdParamName);
             final Charge charge = this.chargeRepository.findOneWithNotFoundDetection(chargeDefinitionId);
-
+            final Long calendarId = command.longValueOfParameterNamed("calendarId");
+            
             // validate for client charge
             if (!charge.isClientCharge()) {
                 final String errorMessage = "Charge with identifier " + charge.getId() + " cannot be applied to a Client";
                 throw new ChargeCannotBeAppliedToException("client", errorMessage, charge.getId());
             }
+            if (charge.isMonthlyFee() || charge.isAnnualFee()||charge.isWeeklyFee()) {
+                final ClientRecurringCharge clientRecurringCharge = ClientRecurringCharge.createNew(client, charge, command);
+                this.clientRecurringChargeRepository.save(clientRecurringCharge);
 
+                final DateTimeFormatter fmt = DateTimeFormat.forPattern(command.dateFormat());
+                validateActivityDateFallOnAWorkingDay(clientRecurringCharge.getDueLocalDate(),
+                        clientRecurringCharge.getClient().officeId(), ClientApiConstants.dueAsOfDateParamName,
+                        "charge.due.date.is.on.holiday", "charge.due.date.is.a.non.workingday", fmt);
+                
+                System.out.println("calendarId:"+calendarId);
+                if(calendarId != null && calendarId != 0)
+                  saveCalendarInstance(calendarId, clientRecurringCharge.getId());
+
+                return new CommandProcessingResultBuilder() //
+                        .withEntityId(clientRecurringCharge.getId()) //
+                        .withOfficeId(clientRecurringCharge.getClient().getOffice().getId()) //
+                        .withClientId(clientRecurringCharge.getClient().getId()) //
+                        .build();
+            }
             final ClientCharge clientCharge = ClientCharge.createNew(client, charge, command);
-
-            final DateTimeFormatter fmt = DateTimeFormat.forPattern(command.dateFormat());
-            validateDueDateOnWorkingDay(clientCharge, fmt);
-
             this.clientChargeRepository.save(clientCharge);
 
+            final DateTimeFormatter fmt = DateTimeFormat.forPattern(command.dateFormat());
+            validateActivityDateFallOnAWorkingDay(clientCharge.getDueLocalDate(), clientCharge.getOfficeId(),
+                    ClientApiConstants.dueAsOfDateParamName, "charge.due.date.is.on.holiday", "charge.due.date.is.a.non.workingday", fmt);
+            
             return new CommandProcessingResultBuilder() //
                     .withEntityId(clientCharge.getId()) //
                     .withOfficeId(clientCharge.getClient().getOffice().getId()) //
@@ -119,6 +164,22 @@ public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements Client
         } catch (DataIntegrityViolationException dve) {
             handleDataIntegrityIssues(clientId, null, dve);
             return CommandProcessingResult.empty();
+        }
+    }
+
+
+	private void saveCalendarInstance(Long calendarId, Long clientChargeId) {
+
+		// Save calendar instance
+        
+
+        if (calendarId != null && calendarId != 0) {
+        	Calendar calendar = this.calendarRepository.findOne(calendarId);
+            if (calendar == null) { throw new CalendarNotFoundException(calendarId); }
+
+            final CalendarInstance calendarInstance = new CalendarInstance(calendar,clientChargeId,
+                    CalendarEntityType.CLIENTCHARGE.getValue());
+            this.calendarInstanceRepository.save(calendarInstance);
         }
     }
 
@@ -231,6 +292,39 @@ public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements Client
         }
     }
 
+    @Override
+    @SuppressWarnings("unused")
+    public CommandProcessingResult inactivateCharge(Long clientId, Long clientRecurringChargeId) {
+
+        final Client client = this.clientRepository.getActiveClientInUserScope(clientId);
+        final ClientRecurringCharge clientRecurringCharge = this.clientRecurringChargeRepowrapper
+                .findOneWithNotFoundDetection(clientRecurringChargeId);
+        final LocalDate inActivateDate = DateUtils.getLocalDateOfTenant();
+        clientRecurringCharge.inactiavateCharge(inActivateDate);
+        clientRecurringChargeRepository.save(clientRecurringCharge);
+
+        return new CommandProcessingResultBuilder() //
+                .withEntityId(clientRecurringCharge.getId()) //
+                .withOfficeId(clientRecurringCharge.getClient().getOffice().getId()) //
+                .withClientId(client.getId()) //
+                .build();
+    }
+
+    @Override
+    @SuppressWarnings("unused")
+    public CommandProcessingResult activateCharge(Long clientId, Long clientRecurringChargeId) {
+        final ClientRecurringCharge clientRecurringCharge = this.clientRecurringChargeRepowrapper
+                .findOneWithNotFoundDetection(clientRecurringChargeId);
+        clientRecurringCharge.actiavateCharge();
+        clientRecurringChargeRepository.save(clientRecurringCharge);
+
+        return new CommandProcessingResultBuilder() //
+                .withEntityId(clientRecurringCharge.getId()) //
+                .withOfficeId(clientRecurringCharge.getClient().getOffice().getId()) //
+                .withClientId(clientId) //
+                .build();
+    }
+    
     /**
      * Validates transaction to ensure that <br>
      * charge is active <br>
@@ -336,13 +430,6 @@ public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements Client
         return null;
     }
 
-    @Override
-    @SuppressWarnings("unused")
-    public CommandProcessingResult inactivateCharge(Long clientId, Long clientChargeId) {
-        // functionality not yet supported
-        return null;
-    }
-
     /**
      * Ensures that the charge due date is not on a holiday or a non working day
      * 
@@ -420,5 +507,29 @@ public class ClientChargeWritePlatformServiceJpaRepositoryImpl implements Client
         throw new PlatformDataIntegrityException("error.msg.client.charges.unknown.data.integrity.issue",
                 "Unknown data integrity issue with resource.");
     }
+
+	@Override
+	@Transactional
+	public 	void applyMeetingDateChanges(Calendar calendarForUpdate,Collection<CalendarInstance> clientChargesCalendrInstances,Boolean reschedulebasedOnMeetingDates,
+			LocalDate presentMeetingDate, LocalDate newMeetingDate) {
+		final Collection<Long> clientChargeIds = new ArrayList<>(clientChargesCalendrInstances.size());
+		
+		for (final CalendarInstance calendarInstance : clientChargesCalendrInstances) {
+			clientChargeIds.add(calendarInstance.getEntityId());
+        }
+		
+		for (Long clientChargeId : clientChargeIds) {
+			
+			ClientCharge clientCharge = clientChargeRepository.findOneWithNotFoundDetection(clientChargeId);
+			clientCharge.setDueDate(newMeetingDate.toDate());
+			clientChargeRepository.save(clientCharge);
+			
+			ClientRecurringCharge clientRecurringCharge = clientRecurringChargeRepository.findOne(clientCharge.getClientRecurringCharge().getId());
+			
+			clientRecurringCharge.setDueDate(newMeetingDate.toDate());
+			clientRecurringChargeRepository.save(clientRecurringCharge);
+		}
+		
+	}
 
 }

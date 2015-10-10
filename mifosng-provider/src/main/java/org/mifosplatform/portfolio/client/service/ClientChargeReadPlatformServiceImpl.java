@@ -8,6 +8,7 @@ package org.mifosplatform.portfolio.client.service;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 
 import org.joda.time.LocalDate;
@@ -19,11 +20,16 @@ import org.mifosplatform.infrastructure.core.service.RoutingDataSource;
 import org.mifosplatform.infrastructure.core.service.SearchParameters;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
 import org.mifosplatform.organisation.monetary.data.CurrencyData;
+import org.mifosplatform.portfolio.calendar.data.CalendarData;
+import org.mifosplatform.portfolio.calendar.domain.CalendarEntityType;
+import org.mifosplatform.portfolio.calendar.service.CalendarReadPlatformService;
+import org.mifosplatform.portfolio.calendar.service.CalendarReadPlatformServiceImpl;
 import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.charge.service.ChargeEnumerations;
 import org.mifosplatform.portfolio.client.api.ClientApiConstants;
 import org.mifosplatform.portfolio.client.data.ClientChargeData;
 import org.mifosplatform.portfolio.client.exception.ClientChargeNotFoundException;
+import org.mifosplatform.portfolio.group.data.GroupGeneralData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -37,12 +43,13 @@ public class ClientChargeReadPlatformServiceImpl implements ClientChargeReadPlat
     private final JdbcTemplate jdbcTemplate;
     private final PlatformSecurityContext context;
     private final ClientChargeMapper clientChargeMapper;
-
+    private final CalendarReadPlatformService calendarReadPlatformService;
     @Autowired
     public ClientChargeReadPlatformServiceImpl(final PlatformSecurityContext context, final RoutingDataSource dataSource) {
         this.context = context;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
         this.clientChargeMapper = new ClientChargeMapper();
+        this.calendarReadPlatformService = new CalendarReadPlatformServiceImpl(dataSource);
     }
 
     public static final class ClientChargeMapper implements RowMapper<ClientChargeData> {
@@ -81,10 +88,11 @@ public class ClientChargeReadPlatformServiceImpl implements ClientChargeReadPlat
             final LocalDate inactivationDate = JdbcSupport.getLocalDate(rs, "inactivationDate");
 
             final Collection<ChargeData> chargeOptions = null;
+            final Collection<CalendarData> calendarsData = null;
 
             return ClientChargeData.instance(id, clientId, chargeId, name, chargeTimeType, dueDate, chargeCalculationType, currency, amount,
                     amountPaid, amountWaived, amountWrittenOff, amountOutstanding, penalty, isPaid, isWaived, isActive, inactivationDate,
-                    chargeOptions);
+                    chargeOptions,calendarsData);
 
         }
 
@@ -153,5 +161,16 @@ public class ClientChargeReadPlatformServiceImpl implements ClientChargeReadPlat
         return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlCountRows, sqlBuilder.toString(), new Object[] { clientId },
                 this.clientChargeMapper);
     }
+
+	@Override
+	public Collection<CalendarData> retrieveCalendars(Long groupId,Long clientId) {
+		Collection<CalendarData> calendarsData = new ArrayList<>();
+        calendarsData.addAll(
+                this.calendarReadPlatformService.retrieveParentCalendarsByEntity(groupId, CalendarEntityType.GROUPS.getValue(), null));
+        calendarsData
+                .addAll(this.calendarReadPlatformService.retrieveCalendarsByEntity(groupId, CalendarEntityType.GROUPS.getValue(), null));
+        calendarsData = this.calendarReadPlatformService.updateWithRecurringDates(calendarsData);
+        return calendarsData;
+	}
 
 }

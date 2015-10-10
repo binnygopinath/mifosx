@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.LocalDate;
@@ -56,6 +57,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
     // data mappers
     private final PaginationHelper<ClientData> paginationHelper = new PaginationHelper<>();
     private final ClientMapper clientMapper = new ClientMapper();
+    private final ClientGroupMapper clientGroupMapper = new ClientGroupMapper();
     private final ClientLookupMapper lookupMapper = new ClientLookupMapper();
     private final ClientMembersOfGroupMapper membersOfGroupMapper = new ClientMembersOfGroupMapper();
     private final ParentGroupsMapper clientGroupsMapper = new ParentGroupsMapper();
@@ -223,6 +225,19 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
         } catch (final EmptyResultDataAccessException e) {
             throw new ClientNotFoundException(clientId);
         }
+    }
+    
+    @Override
+    public GroupGeneralData retrieveOneFromGroupClient(final Long clientId) {
+            final String clientGroupsSql = this.clientGroupMapper.clientGroupsSchema();
+            List<Map<String, Object>> result = this.jdbcTemplate.queryForList(clientGroupsSql,new Object[] { clientId });
+            System.out.println("result:"+result);
+            if(!result.isEmpty()&&result!=null){
+            	 Long id =(Long) result.get(0).get("id");
+                 return   GroupGeneralData.lookup(id, null, null);
+            }
+			return null;
+           
     }
 
     @Override
@@ -578,6 +593,19 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
         }
     }
 
+    private static final class ClientGroupMapper implements RowMapper<GroupGeneralData> {
+
+        public String clientGroupsSchema() {
+            return "select gc.group_id as id from m_group_client gc where gc.client_id = ?";
+        }
+
+        @Override
+        public GroupGeneralData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
+
+            final Long id = JdbcSupport.getLong(rs, "id");
+            return GroupGeneralData.lookup(id, null, null);
+        }
+    }
     private static final class ClientLookupMapper implements RowMapper<ClientData> {
 
         private final String schema;

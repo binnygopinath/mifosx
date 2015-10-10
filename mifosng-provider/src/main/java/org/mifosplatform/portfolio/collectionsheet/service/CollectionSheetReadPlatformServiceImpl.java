@@ -34,6 +34,7 @@ import org.mifosplatform.portfolio.calendar.domain.Calendar;
 import org.mifosplatform.portfolio.calendar.domain.CalendarEntityType;
 import org.mifosplatform.portfolio.calendar.domain.CalendarRepositoryWrapper;
 import org.mifosplatform.portfolio.calendar.exception.NotValidRecurringDateException;
+import org.mifosplatform.portfolio.client.data.ClientChargeData;
 import org.mifosplatform.portfolio.collectionsheet.data.IndividualClientData;
 import org.mifosplatform.portfolio.collectionsheet.data.IndividualCollectionSheetData;
 import org.mifosplatform.portfolio.collectionsheet.data.IndividualCollectionSheetLoanFlatData;
@@ -115,6 +116,7 @@ public class CollectionSheetReadPlatformServiceImpl implements CollectionSheetRe
         final List<JLGGroupData> jlgGroupsData = new ArrayList<>();
         List<JLGClientData> clientsData = new ArrayList<>();
         List<LoanDueData> loansDueData = new ArrayList<>();
+        List<ClientChargeData> clientChargesDueData = new ArrayList<>();
 
         JLGCollectionSheetData jlgCollectionSheetData = null;
         JLGCollectionSheetFlatData prevCollectioSheetFlatData = null;

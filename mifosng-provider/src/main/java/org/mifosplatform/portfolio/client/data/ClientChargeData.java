@@ -10,7 +10,9 @@ import java.util.Collection;
 
 import org.joda.time.LocalDate;
 import org.mifosplatform.infrastructure.core.data.EnumOptionData;
+import org.mifosplatform.infrastructure.core.service.Page;
 import org.mifosplatform.organisation.monetary.data.CurrencyData;
+import org.mifosplatform.portfolio.calendar.data.CalendarData;
 import org.mifosplatform.portfolio.charge.data.ChargeData;
 
 @SuppressWarnings("unused")
@@ -56,14 +58,16 @@ public class ClientChargeData {
 
     private final Collection<ClientTransactionData> clientTransactionDatas;
 
+	private final Collection<CalendarData> calendarsData;
+
     public static ClientChargeData instance(Long id, Long clientId, Long chargeId, String name, EnumOptionData chargeTimeType,
             LocalDate dueDate, EnumOptionData chargeCalculationType, CurrencyData currency, BigDecimal amount, BigDecimal amountPaid,
             BigDecimal amountWaived, BigDecimal amountWrittenOff, BigDecimal amountOutstanding, boolean penalty, Boolean isPaid,
-            Boolean isWaived, Boolean isActive, LocalDate inactivationDate, Collection<ChargeData> chargeOptions) {
+            Boolean isWaived, Boolean isActive, LocalDate inactivationDate, Collection<ChargeData> chargeOptions,Collection<CalendarData> calendarsData) {
         Collection<ClientTransactionData> clientTransactionDatas = null;
         return new ClientChargeData(id, clientId, chargeId, name, chargeTimeType, dueDate, chargeCalculationType, currency, amount,
                 amountPaid, amountWaived, amountWrittenOff, amountOutstanding, penalty, isPaid, isWaived, isActive, inactivationDate,
-                chargeOptions, clientTransactionDatas);
+                chargeOptions,calendarsData, clientTransactionDatas);
     }
 
     public static ClientChargeData addAssociations(ClientChargeData clientChargeData,
@@ -73,10 +77,10 @@ public class ClientChargeData {
                 clientChargeData.currency, clientChargeData.amount, clientChargeData.amountPaid, clientChargeData.amountWaived,
                 clientChargeData.amountWrittenOff, clientChargeData.amountOutstanding, clientChargeData.penalty, clientChargeData.isPaid,
                 clientChargeData.isWaived, clientChargeData.isActive, clientChargeData.inactivationDate, clientChargeData.chargeOptions,
-                clientTransactionDatas);
+                clientChargeData.calendarsData,clientTransactionDatas);
     }
 
-    public static ClientChargeData template(final Collection<ChargeData> chargeOptions) {
+    public static ClientChargeData template(final Collection<ChargeData> chargeOptions,final Collection<CalendarData> calendarsData) {
         final Long id = null;
         final Long clientId = null;
         final Long chargeId = null;
@@ -99,13 +103,13 @@ public class ClientChargeData {
 
         return new ClientChargeData(id, clientId, chargeId, name, chargeTimeType, dueDate, chargeCalculationType, currency, amount,
                 amountPaid, amountWaived, amountWrittenOff, amountOutstanding, penalty, isPaid, isWaived, isActive, inactivationDate,
-                chargeOptions, clientTransactionDatas);
+                chargeOptions,calendarsData, clientTransactionDatas);
     }
 
     private ClientChargeData(Long id, Long clientId, Long chargeId, String name, EnumOptionData chargeTimeType, LocalDate dueDate,
             EnumOptionData chargeCalculationType, CurrencyData currency, BigDecimal amount, BigDecimal amountPaid, BigDecimal amountWaived,
             BigDecimal amountWrittenOff, BigDecimal amountOutstanding, boolean penalty, Boolean isPaid, Boolean isWaived, Boolean isActive,
-            LocalDate inactivationDate, Collection<ChargeData> chargeOptions, Collection<ClientTransactionData> clientTransactionDatas) {
+            LocalDate inactivationDate, Collection<ChargeData> chargeOptions,Collection<CalendarData> calendarsData, Collection<ClientTransactionData> clientTransactionDatas) {
         super();
         this.id = id;
         this.clientId = clientId;
@@ -128,6 +132,8 @@ public class ClientChargeData {
 
         // template related fields
         this.chargeOptions = chargeOptions;
+        
+        this.calendarsData=calendarsData;
 
         /// associations
         this.clientTransactionDatas = clientTransactionDatas;

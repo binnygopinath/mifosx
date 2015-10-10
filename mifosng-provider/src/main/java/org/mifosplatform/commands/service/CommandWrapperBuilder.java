@@ -28,10 +28,11 @@ public class CommandWrapperBuilder {
     private String transactionId;
     private Long productId;
     private Long templateId;
+    private Long clientChargeId;
 
     public CommandWrapper build() {
         return new CommandWrapper(this.officeId, this.groupId, this.clientId, this.loanId, this.savingsId, this.actionName, this.entityName,
-                this.entityId, this.subentityId, this.href, this.json, this.transactionId, this.productId, this.templateId);
+                this.entityId, this.subentityId, this.href, this.json, this.transactionId, this.productId, this.templateId,this.clientChargeId);
     }
 
     public CommandWrapperBuilder withLoanId(final Long withLoanId) {
@@ -46,6 +47,11 @@ public class CommandWrapperBuilder {
 
     public CommandWrapperBuilder withClientId(final Long withClientId) {
         this.clientId = withClientId;
+        return this;
+    }
+    
+    public CommandWrapperBuilder withClientChargeId(final Long withClientChargeId) {
+        this.clientChargeId = withClientChargeId;
         return this;
     }
 
@@ -2428,6 +2434,25 @@ public class CommandWrapperBuilder {
         this.entityId = chargeId;
         this.clientId = clientId;
         this.href = "/clients/" + clientId + "/charges/" + chargeId + "?command=waive";
+        return this;
+    }
+    
+    
+    public CommandWrapperBuilder inactivateClientRecurringCharge(final Long clientId, final Long recurringClientChargeId) {
+        this.actionName = "INACTIVATE";
+        this.entityName = ClientApiConstants.CLIENT_CHARGES_RESOURCE_NAME;
+        this.entityId = recurringClientChargeId;
+        this.clientId = clientId;
+        this.href = "/clients/" + clientId + "/charges/recurringCharges/" + recurringClientChargeId + "?command=inactivate";
+        return this;
+    }
+    
+    public CommandWrapperBuilder activateClientRecurringCharge(final Long clientId, final Long recurringClientChargeId) {
+        this.actionName = "ACTIVATE";
+        this.entityName = ClientApiConstants.CLIENT_CHARGES_RESOURCE_NAME;
+        this.entityId = recurringClientChargeId;
+        this.clientId = clientId;
+        this.href = "/clients/" + clientId + "/charges/recurringCharges/" + recurringClientChargeId + "?command=activate";
         return this;
     }
 

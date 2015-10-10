@@ -48,5 +48,8 @@ public interface CalendarInstanceRepository extends JpaRepository<CalendarInstan
     
     @Query("SELECT COUNT(ci.id) FROM CalendarInstance ci, Loan ln WHERE ln.id = ci.entityId AND ci.entityTypeId = 3 AND ci.calendar.id = :calendarId AND ln.loanStatus IN :loanStatuses ") 
     Integer countOfLoansSyncedWithCalendar(@Param("calendarId") Long calendarId, @Param("loanStatuses") Collection<Integer> loanStatuses );
+    
+    @Query("SELECT COUNT(ci.id) FROM CalendarInstance ci, ClientCharge cc WHERE cc.id = ci.entityId AND ci.entityTypeId = 8 AND ci.calendar.id = :calendarId AND cc.status = 1 ") 
+    Integer countOfClientChargesSyncedWithCalendar(@Param("calendarId") Long calendarId);
 
 }

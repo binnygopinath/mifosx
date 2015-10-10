@@ -35,7 +35,10 @@ import org.mifosplatform.portfolio.calendar.domain.CalendarType;
 import org.mifosplatform.portfolio.calendar.exception.CalendarNotFoundException;
 import org.mifosplatform.portfolio.calendar.serialization.CalendarCommandFromApiJsonDeserializer;
 import org.mifosplatform.portfolio.client.domain.Client;
+import org.mifosplatform.portfolio.client.domain.ClientCharge;
+import org.mifosplatform.portfolio.client.domain.ClientChargeRepositoryWrapper;
 import org.mifosplatform.portfolio.client.domain.ClientRepositoryWrapper;
+import org.mifosplatform.portfolio.client.service.ClientChargeWritePlatformService;
 import org.mifosplatform.portfolio.group.domain.Group;
 import org.mifosplatform.portfolio.group.domain.GroupRepositoryWrapper;
 import org.mifosplatform.portfolio.loanaccount.domain.Loan;
@@ -58,6 +61,7 @@ public class CalendarWritePlatformServiceJpaRepositoryImpl implements CalendarWr
     private final GroupRepositoryWrapper groupRepository;
     private final LoanRepository loanRepository;
     private final ClientRepositoryWrapper clientRepository;
+    private final ClientChargeWritePlatformService clientChargeWritePlatformService;
 
     @Autowired
     public CalendarWritePlatformServiceJpaRepositoryImpl(final CalendarRepository calendarRepository,
@@ -65,7 +69,8 @@ public class CalendarWritePlatformServiceJpaRepositoryImpl implements CalendarWr
             final CalendarCommandFromApiJsonDeserializer fromApiJsonDeserializer,
             final CalendarInstanceRepository calendarInstanceRepository, final LoanWritePlatformService loanWritePlatformService,
             final ConfigurationDomainService configurationDomainService, final GroupRepositoryWrapper groupRepository,
-            final LoanRepository loanRepository, final ClientRepositoryWrapper clientRepository) {
+            final LoanRepository loanRepository, final ClientRepositoryWrapper clientRepository,
+            final ClientChargeWritePlatformService clientChargeWritePlatformService) {
         this.calendarRepository = calendarRepository;
         this.calendarHistoryRepository = calendarHistoryRepository;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
@@ -75,6 +80,7 @@ public class CalendarWritePlatformServiceJpaRepositoryImpl implements CalendarWr
         this.groupRepository = groupRepository;
         this.loanRepository = loanRepository;
         this.clientRepository = clientRepository;
+        this.clientChargeWritePlatformService = clientChargeWritePlatformService;
     }
 
     @Override
@@ -211,13 +217,15 @@ public class CalendarWritePlatformServiceJpaRepositoryImpl implements CalendarWr
 
         final Integer numberOfActiveLoansSyncedWithThisCalendar = this.calendarInstanceRepository.countOfLoansSyncedWithCalendar(
                 calendarId, loanStatuses);
+        final Integer numberOfActiveClientChargesSyncedWithThisCalendar = this.calendarInstanceRepository.countOfClientChargesSyncedWithCalendar(
+                calendarId);
 
         /*
          * areActiveEntitiesSynced is set to true, if there are any active loans
          * synced to this calendar.
          */
         
-        if(numberOfActiveLoansSyncedWithThisCalendar > 0){
+        if(numberOfActiveLoansSyncedWithThisCalendar > 0||numberOfActiveClientChargesSyncedWithThisCalendar>0){
             areActiveEntitiesSynced = true;
         }
 
@@ -288,10 +296,17 @@ public class CalendarWritePlatformServiceJpaRepositoryImpl implements CalendarWr
                 // calendar.
                 final Collection<CalendarInstance> loanCalendarInstances = this.calendarInstanceRepository.findByCalendarIdAndEntityTypeId(
                         calendarId, CalendarEntityType.LOANS.getValue());
-
+                final Collection<CalendarInstance> clientChargesCalendrInstance =this.calendarInstanceRepository.findByCalendarIdAndEntityTypeId(
+                        calendarId, CalendarEntityType.CLIENTCHARGE.getValue());
                 if (!CollectionUtils.isEmpty(loanCalendarInstances)) {
                     // update all loans associated with modifying calendar
                     this.loanWritePlatformService.applyMeetingDateChanges(calendarForUpdate, loanCalendarInstances,
+                            reschedulebasedOnMeetingDates, presentMeetingDate, newMeetingDate);
+
+                }
+                if (!CollectionUtils.isEmpty(clientChargesCalendrInstance)) {
+                    // update all Client charges associated with modifying calendar
+                    this.clientChargeWritePlatformService.applyMeetingDateChanges(calendarForUpdate, clientChargesCalendrInstance,
                             reschedulebasedOnMeetingDates, presentMeetingDate, newMeetingDate);
 
                 }
