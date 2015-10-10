@@ -35,12 +35,17 @@ import org.mifosplatform.infrastructure.core.serialization.DefaultToApiJsonSeria
 import org.mifosplatform.infrastructure.core.service.Page;
 import org.mifosplatform.infrastructure.core.service.SearchParameters;
 import org.mifosplatform.infrastructure.security.service.PlatformSecurityContext;
+import org.mifosplatform.portfolio.calendar.data.CalendarData;
 import org.mifosplatform.portfolio.charge.data.ChargeData;
 import org.mifosplatform.portfolio.charge.service.ChargeReadPlatformService;
 import org.mifosplatform.portfolio.client.data.ClientChargeData;
+import org.mifosplatform.portfolio.client.data.ClientRecurringChargeData;
 import org.mifosplatform.portfolio.client.data.ClientTransactionData;
 import org.mifosplatform.portfolio.client.service.ClientChargeReadPlatformService;
+import org.mifosplatform.portfolio.client.service.ClientReadPlatformService;
+import org.mifosplatform.portfolio.client.service.ClientRecurringChargeReadPlatformService;
 import org.mifosplatform.portfolio.client.service.ClientTransactionReadPlatformService;
+import org.mifosplatform.portfolio.group.data.GroupGeneralData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -54,16 +59,22 @@ public class ClientChargesApiResource {
     private final ClientChargeReadPlatformService clientChargeReadPlatformService;
     private final ClientTransactionReadPlatformService clientTransactionReadPlatformService;
     private final DefaultToApiJsonSerializer<ClientChargeData> toApiJsonSerializer;
+    private final DefaultToApiJsonSerializer<ClientRecurringChargeData> clientRecurringChargeDatatoApiJsonSerializer;
     private final ApiRequestParameterHelper apiRequestParameterHelper;
     private final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService;
+    private final ClientRecurringChargeReadPlatformService clientRecurringChargeReadPlatformService;
+    private final ClientReadPlatformService clientReadPlatformService;
 
     @Autowired
     public ClientChargesApiResource(final PlatformSecurityContext context, final ChargeReadPlatformService chargeReadPlatformService,
             final ClientChargeReadPlatformService clientChargeReadPlatformService,
             final DefaultToApiJsonSerializer<ClientChargeData> toApiJsonSerializer,
+            DefaultToApiJsonSerializer<ClientRecurringChargeData> clientRecurringChargeDatatoApiJsonSerializer,
             final ApiRequestParameterHelper apiRequestParameterHelper,
             final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
-            final ClientTransactionReadPlatformService clientTransactionReadPlatformService) {
+            final ClientTransactionReadPlatformService clientTransactionReadPlatformService,
+            final ClientRecurringChargeReadPlatformService clientRecurringChargeReadPlatformService,
+            final ClientReadPlatformService clientReadPlatformService) {
         this.context = context;
         this.chargeReadPlatformService = chargeReadPlatformService;
         this.clientChargeReadPlatformService = clientChargeReadPlatformService;
@@ -71,6 +82,9 @@ public class ClientChargesApiResource {
         this.apiRequestParameterHelper = apiRequestParameterHelper;
         this.commandsSourceWritePlatformService = commandsSourceWritePlatformService;
         this.clientTransactionReadPlatformService = clientTransactionReadPlatformService;
+        this.clientRecurringChargeReadPlatformService = clientRecurringChargeReadPlatformService;
+        this.clientRecurringChargeDatatoApiJsonSerializer = clientRecurringChargeDatatoApiJsonSerializer;
+        this.clientReadPlatformService = clientReadPlatformService;
     }
 
     @GET
@@ -105,13 +119,18 @@ public class ClientChargesApiResource {
     @Path("template")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public String retrieveTemplate(@Context final UriInfo uriInfo) {
+    public String retrieveTemplate(@PathParam("clientId") final Long clientId,@Context final UriInfo uriInfo) {
 
         this.context.authenticatedUser().validateHasReadPermission(ClientApiConstants.CLIENT_CHARGES_RESOURCE_NAME);
 
         final Collection<ChargeData> chargeOptions = this.chargeReadPlatformService.retrieveAllChargesApplicableToClients();
-        final ClientChargeData clientChargeData = ClientChargeData.template(chargeOptions);
 
+        GroupGeneralData generalData = clientReadPlatformService.retrieveOneFromGroupClient(clientId);
+        Collection<CalendarData> calendarData = null;
+        if(generalData!=null)
+        	calendarData=clientChargeReadPlatformService.retrieveCalendars(generalData.getId(), clientId);
+        final ClientChargeData clientChargeData = ClientChargeData.template(chargeOptions,calendarData);
+         
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings, clientChargeData, ClientApiConstants.CLIENT_CHARGES_RESPONSE_DATA_PARAMETERS);
 
@@ -193,7 +212,44 @@ public class ClientChargesApiResource {
 
         return json;
     }
+    
+    @GET
+    @Path("recurringCharges")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String retrieveAllClientRecurringCharges(@PathParam("clientId") final Long clientId, @Context final UriInfo uriInfo) {
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        final Collection<ClientRecurringChargeData> clientRecurringCharges = this.clientRecurringChargeReadPlatformService
+                .retrieveClientRecurringCharges(clientId);
+        return this.clientRecurringChargeDatatoApiJsonSerializer.serialize(settings, clientRecurringCharges,
+                ClientApiConstants.CLIENT_RECURRING_CHARGES_RESPONSE_DATA_PARAMETERS);
+    }
+    
+    @POST
+    @Path("recurringCharges/{recurringChargeId}")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String inactivateOrActivateClientRecurringCharge(@PathParam("clientId") final Long clientId,
+            @PathParam("recurringChargeId") final Long recurringChargeId, @QueryParam("command") final String commandParam) {
+        String resultJson = "";
+        if (is(commandParam, ClientApiConstants.CLIENT_CHARGE_COMMAND_INACTIVATE_CHARGE)) {
+            final CommandWrapper commandRequest = new CommandWrapperBuilder().inactivateClientRecurringCharge(clientId, recurringChargeId)
+                    .build();
+            final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+            resultJson = this.toApiJsonSerializer.serialize(result);
 
+        } else if (is(commandParam, ClientApiConstants.CLIENT_CHARGE_COMMAND_ACTIVATE_CHARGE)) {
+            final CommandWrapper commandRequest = new CommandWrapperBuilder().activateClientRecurringCharge(clientId, recurringChargeId)
+                    .build();
+            final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+            resultJson = this.toApiJsonSerializer.serialize(result);
+        } else {
+            throw new UnrecognizedQueryParamException("command", commandParam, ClientApiConstants.CLIENT_CHARGE_COMMAND_ACTIVATE_CHARGE,
+                    ClientApiConstants.CLIENT_CHARGE_COMMAND_INACTIVATE_CHARGE);
+        }
+        return resultJson;
+
+    }
     @DELETE
     @Path("{chargeId}")
     @Consumes({ MediaType.APPLICATION_JSON })
