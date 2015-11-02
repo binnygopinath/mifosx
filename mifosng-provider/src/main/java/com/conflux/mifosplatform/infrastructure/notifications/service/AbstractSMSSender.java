@@ -10,7 +10,7 @@ import java.util.Properties;
 
 public abstract class AbstractSMSSender {
 	
-	protected static Properties smsConfigs;
+	private static Properties smsConfigs;
 	
 	protected AbstractSMSSender() {
 		this.init();
@@ -86,4 +86,5 @@ public abstract class AbstractSMSSender {
 		}
 
 	}
+	
 }
